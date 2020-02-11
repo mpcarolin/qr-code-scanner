@@ -1,7 +1,6 @@
-import { snackbar } from '../snackbar.js';
 import Worker from './decoder.worker';
 
-var QRReader = {};
+const QRReader = {};
 
 QRReader.active = false;
 QRReader.webcam = null;
@@ -27,23 +26,23 @@ function setPhotoSourceToScan(mediaElement, forSelectedPhotos) {
   QRReader.webcam = webcam;
 }
 
+/**
+ * @param { Object } mediaElement - either a video or image element
+ */
 QRReader.init = mediaElement => {
-  var baseurl = '';
   var streaming = false;
 
   // Init Webcam + Canvas
   setPhotoSourceToScan(mediaElement);
 
   QRReader.setCanvas();
-  // QRReader.decoder = new Worker(baseurl + 'decoder.js');
   QRReader.decoder = new Worker();
 
   if (window.isMediaStreamAPISupported) {
-    console.log('isMediaStreamAPISupported: true');
     // Resize webcam according to input
     QRReader.webcam.addEventListener(
       'play',
-      function(ev) {
+      event => {
         if (!streaming) {
           setCanvasProperties();
           streaming = true;
@@ -54,107 +53,27 @@ QRReader.init = mediaElement => {
   } else {
     setCanvasProperties();
   }
-
-  function setCanvasProperties() {
-    QRReader.canvas.width = window.innerWidth;
-    QRReader.canvas.height = window.innerHeight;
-  }
-
-  function startCapture(constraints) {
-    navigator.mediaDevices
-      .getUserMedia(constraints)
-      .then(function(stream) {
-        QRReader.webcam.srcObject = stream;
-        QRReader.webcam.setAttribute('playsinline', true);
-        QRReader.webcam.setAttribute('controls', true);
-        setTimeout(() => {
-          document.querySelector('video').removeAttribute('controls');
-        });
-      })
-      .catch(function(err) {
-        console.log('Error occurred ', err);
-        showErrorMsg();
-      });
-  }
-
-  if (window.isMediaStreamAPISupported) {
-    navigator.mediaDevices
-      .enumerateDevices()
-      .then(function(devices) {
-        var device = devices.filter(function(device) {
-          var deviceLabel = device.label.split(',')[1];
-          if (device.kind == 'videoinput') {
-            return device;
-          }
-        });
-
-        var constraints;
-        if (device.length > 1) {
-          constraints = {
-            video: {
-              mandatory: {
-                sourceId: device[1].deviceId ? device[1].deviceId : null
-              }
-            },
-            audio: false
-          };
-
-          if (window.iOS) {
-            constraints.video.facingMode = 'environment';
-          }
-          startCapture(constraints);
-        } else if (device.length) {
-          constraints = {
-            video: {
-              mandatory: {
-                sourceId: device[0].deviceId ? device[0].deviceId : null
-              }
-            },
-            audio: false
-          };
-
-          if (window.iOS) {
-            constraints.video.facingMode = 'environment';
-          }
-
-          startCapture(constraints);
-        } else {
-          startCapture({ video: true });
-        }
-      })
-      .catch(function(error) {
-        showErrorMsg();
-        console.error('Error occurred : ', error);
-      });
-  }
-
-  function showErrorMsg() {
-    window.noCameraPermission = true;
-    document.querySelector('.custom-scanner').style.display = 'none';
-    snackbar.show('Unable to access the camera', 10000);
-  }
 };
 
 /**
- * \brief QRReader Scan Action
  * Call this to start scanning for QR codes.
- *
- * \param A function(scan_result)
+ * @param { Function } callback - callback for result of scan
+ * @param { Boolean } forSelectedPhotos
  */
 QRReader.scan = function(callback, forSelectedPhotos) {
   QRReader.active = true;
-  console.log('QRReader scanning');
   QRReader.setCanvas();
-  function onDecoderMessage(event) {
+
+  const onDecoderMessage = event => {
     if (event.data.length > 0) {
       var qrid = event.data[0][2];
       QRReader.active = false;
-      console.log('received response from worker', event);
       callback(qrid);
     }
     setTimeout(newDecoderFrame, 0);
-  }
+  };
 
+  // listen to messages from worker
   QRReader.decoder.onmessage = onDecoderMessage;
 
   setTimeout(() => {
@@ -166,7 +85,7 @@ QRReader.scan = function(callback, forSelectedPhotos) {
     if (!QRReader.active) return;
     try {
       QRReader.ctx.drawImage(QRReader.webcam, 0, 0, QRReader.canvas.width, QRReader.canvas.height);
-      var imgData = QRReader.ctx.getImageData(0, 0, QRReader.canvas.width, QRReader.canvas.height);
+      const imgData = QRReader.ctx.getImageData(0, 0, QRReader.canvas.width, QRReader.canvas.height);
 
       if (imgData.data) {
         QRReader.decoder.postMessage(imgData);
@@ -179,5 +98,20 @@ QRReader.scan = function(callback, forSelectedPhotos) {
   }
   newDecoderFrame();
 };
+
+/**
+ * Terminates the web worker that handles decoding. To resume scanning, you will have to call init again.
+ * @function
+ * @returns { void }
+ */
+QRReader.terminate = () => {
+  QRReader.decoder && QRReader.decoder.terminate();
+  QRReader.decoder = null;
+};
+
+function setCanvasProperties() {
+  QRReader.canvas.width = window.innerWidth;
+  QRReader.canvas.height = window.innerHeight;
+}
 
 export default QRReader;
