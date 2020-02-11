@@ -1,20 +1,21 @@
 const path = require('path');
 const CleanWebpackPlugin = require('clean-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const WorkboxPlugin = require('workbox-webpack-plugin');
-const HtmlWebpackPlugin = require('html-webpack-plugin');
 const ExtractTextPlugin = require('extract-text-webpack-plugin');
-const CopyWebpackPlugin = require('copy-webpack-plugin');
 const OptimizeCssAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 
 module.exports = {
-  entry: './app/js/main.js',
+  entry: './index.js',
   output: {
     path: path.resolve(__dirname, 'dist'),
-    filename: '[name].[hash].bundle.js'
+    filename: 'qr-reader.js',
+    // necessary to provide web workers access to the function
+    // postMessage (see https://github.com/webpack/webpack/issues/6642#issuecomment-371087342)
+    globalObject: '(self || this)'
   },
   devServer: {
-    contentBase: __dirname + '/app'
+    contentBase: __dirname + '/app',
+    port: 9090
   },
   optimization: {},
   plugins: [
@@ -23,17 +24,6 @@ module.exports = {
       filename: '[name].css',
       chunkFilename: '[id].css'
     }),
-    new WorkboxPlugin.GenerateSW({
-      clientsClaim: true,
-      skipWaiting: true,
-      runtimeCaching: [{ urlPattern: new RegExp('/'), handler: 'staleWhileRevalidate' }]
-    }),
-    new HtmlWebpackPlugin({
-      template: './app/index.html',
-      minify: {
-        collapseWhitespace: true
-      }
-    }),
     new ExtractTextPlugin({
       filename: 'styles.css'
     }),
@@ -41,9 +31,6 @@ module.exports = {
       cssProcessorPluginOptions: {
         preset: ['default', { discardComments: { removeAll: true } }]
       }
-    }),
-    new CopyWebpackPlugin([{ from: 'images/', to: 'images' }, 'decoder.js', 'manifest.json', 'CNAME'], {
-      context: './app'
     })
   ],
   module: {
@@ -58,6 +45,10 @@ module.exports = {
       {
         test: /.*\.(gif|png|jpe?g|svg)$/i,
         use: ['file-loader']
+      },
+      {
+        test: /\.worker\.js$/,
+        use: { loader: 'worker-loader' }
       }
     ]
   }

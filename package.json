@@ -1,9 +1,11 @@
 {
-	"name": "barcode-scanner",
-	"description": "a simple, fast and useful progressive web application.",
+	"name": "qr-reader",
+	"description": "a qr-code scanner that uses a web worker running the zbar web assembly",
 	"version": "3.1.0",
+	"main": "dist/qr-reader.js",
+	"module": "./index.js",
 	"scripts": {
-		"start": "webpack-dev-server --hot --inline --open --mode=development",
+		"start": "webpack-dev-server --hot --inline --open --mode=development --host 0.0.0.0 --disable-host-check",
 		"deploy": "npm run build && bash deploy.sh",
 		"build": "cross-env NODE_ENV=production webpack-cli --mode=production --config webpack.config.js",
 		"stats": "cross-env NODE_ENV=production webpack-cli --mode=production --profile --json > stats.json",
@@ -20,7 +22,9 @@
 		"node": ">=4.1.1"
 	},
 	"dependencies": {
-		"is-url": "^1.2.4"
+		"is-url": "^1.2.4",
+		"webpack-loader": "^0.0.1",
+		"worker-loader": "^2.0.0"
 	},
 	"devDependencies": {
 		"clean-webpack-plugin": "^0.1.19",

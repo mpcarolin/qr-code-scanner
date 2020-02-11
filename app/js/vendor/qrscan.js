@@ -1,4 +1,5 @@
 import { snackbar } from '../snackbar.js';
+import Worker from './decoder.worker';
 
 var QRReader = {};
 
@@ -13,25 +14,32 @@ QRReader.setCanvas = () => {
   QRReader.ctx = QRReader.canvas.getContext('2d');
 };
 
-function setPhotoSourceToScan(forSelectedPhotos) {
-  if (!forSelectedPhotos && window.isMediaStreamAPISupported) {
-    QRReader.webcam = document.querySelector('video');
+function setPhotoSourceToScan(mediaElement, forSelectedPhotos) {
+  if (QRReader.webcam) return;
+  let webcam;
+  if (mediaElement) {
+    webcam = mediaElement;
+  } else if (!forSelectedPhotos && window.isMediaStreamAPISupported) {
+    webcam = document.querySelector('video');
   } else {
-    QRReader.webcam = document.querySelector('img');
+    webcam = document.querySelector('img');
   }
+  QRReader.webcam = webcam;
 }
 
-QRReader.init = () => {
+QRReader.init = mediaElement => {
   var baseurl = '';
   var streaming = false;
 
   // Init Webcam + Canvas
-  setPhotoSourceToScan();
+  setPhotoSourceToScan(mediaElement);
 
   QRReader.setCanvas();
-  QRReader.decoder = new Worker(baseurl + 'decoder.js');
+  // QRReader.decoder = new Worker(baseurl + 'decoder.js');
+  QRReader.decoder = new Worker();
 
   if (window.isMediaStreamAPISupported) {
+    console.log('isMediaStreamAPISupported: true');
     // Resize webcam according to input
     QRReader.webcam.addEventListener(
       'play',
@@ -135,11 +143,13 @@ QRReader.init = () => {
  */
 QRReader.scan = function(callback, forSelectedPhotos) {
   QRReader.active = true;
+  console.log('QRReader scanning');
   QRReader.setCanvas();
   function onDecoderMessage(event) {
     if (event.data.length > 0) {
       var qrid = event.data[0][2];
       QRReader.active = false;
+      console.log('received response from worker', event);
       callback(qrid);
     }
     setTimeout(newDecoderFrame, 0);
@@ -148,7 +158,7 @@ QRReader.scan = function(callback, forSelectedPhotos) {
   QRReader.decoder.onmessage = onDecoderMessage;
 
   setTimeout(() => {
-    setPhotoSourceToScan(forSelectedPhotos);
+    setPhotoSourceToScan(null, forSelectedPhotos);
   });
 
   // Start QR-decoder
@@ -163,6 +173,7 @@ QRReader.scan = function(callback, forSelectedPhotos) {
       }
     } catch (e) {
       // Try-Catch to circumvent Firefox Bug #879717
+      console.error(e);
       if (e.name == 'NS_ERROR_NOT_AVAILABLE') setTimeout(newDecoderFrame, 0);
     }
   }
