@@ -26,6 +26,9 @@
 		"webpack-loader": "^0.0.1",
 		"worker-loader": "^2.0.0"
 	},
+	"peerDependencies": {
+		"jsutils": "git+https://github.com/lancetipton/jsutils.git#v3.2.1"
+	},
 	"devDependencies": {
 		"clean-webpack-plugin": "^0.1.19",
 		"copy-webpack-plugin": "^4.5.3",

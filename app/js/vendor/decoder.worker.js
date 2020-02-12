@@ -17,10 +17,21 @@
 // License along with this library; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
+postMessage({
+  name: 'init',
+  payload: null
+});
+
+onerror = function(err) {
+  console.log('Encountered error', err);
+};
+
 onmessage = function(imgData) {
-  var result = zbarProcessImageData(imgData.data);
-  // var result = 'test'
-  postMessage(result);
+  const payload = zbarProcessImageData(imgData.data);
+  postMessage({
+    name: 'decoded',
+    payload
+  });
 };
 
 function zbarProcessImageData(imgData) {

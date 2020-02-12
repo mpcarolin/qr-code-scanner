@@ -1,4 +1,8 @@
 import Worker from './decoder.worker';
+import { isObj, validate } from 'jsutils';
+
+const SHOULD_LOG = false;
+const log = (...args) => SHOULD_LOG && console.log(...args);
 
 const QRReader = {};
 
@@ -36,7 +40,7 @@ QRReader.init = mediaElement => {
   setPhotoSourceToScan(mediaElement);
 
   QRReader.setCanvas();
-  QRReader.decoder = new Worker();
+  QRReader.decoder = createWorker();
 
   if (window.isMediaStreamAPISupported) {
     // Resize webcam according to input
@@ -64,39 +68,14 @@ QRReader.scan = function(callback, forSelectedPhotos) {
   QRReader.active = true;
   QRReader.setCanvas();
 
-  const onDecoderMessage = event => {
-    if (event.data.length > 0) {
-      var qrid = event.data[0][2];
-      QRReader.active = false;
-      callback(qrid);
-    }
-    setTimeout(newDecoderFrame, 0);
-  };
-
-  // listen to messages from worker
-  QRReader.decoder.onmessage = onDecoderMessage;
+  // set the onScan callback which will be called by the message handler, if it receives data from worker
+  QRReader.onScan = callback;
 
   setTimeout(() => {
     setPhotoSourceToScan(null, forSelectedPhotos);
   });
 
-  // Start QR-decoder
-  function newDecoderFrame() {
-    if (!QRReader.active) return;
-    try {
-      QRReader.ctx.drawImage(QRReader.webcam, 0, 0, QRReader.canvas.width, QRReader.canvas.height);
-      const imgData = QRReader.ctx.getImageData(0, 0, QRReader.canvas.width, QRReader.canvas.height);
-
-      if (imgData.data) {
-        QRReader.decoder.postMessage(imgData);
-      }
-    } catch (e) {
-      // Try-Catch to circumvent Firefox Bug #879717
-      console.error(e);
-      if (e.name == 'NS_ERROR_NOT_AVAILABLE') setTimeout(newDecoderFrame, 0);
-    }
-  }
-  newDecoderFrame();
+  requestNewDecoderTask();
 };
 
 /**
@@ -109,9 +88,76 @@ QRReader.terminate = () => {
   QRReader.decoder = null;
 };
 
-function setCanvasProperties() {
+const setCanvasProperties = () => {
   QRReader.canvas.width = window.innerWidth;
   QRReader.canvas.height = window.innerHeight;
+};
+
+const createWorker = () => {
+  const worker = new Worker();
+  worker.onerror = handleWorkerError;
+  worker.onmessage = handleWorkerMessage;
+
+  console.log('Created worker', worker);
+
+  return worker;
+};
+
+/**
+ * Handles event
+ * @param {*} message
+ */
+const handleWorkerMessage = message => {
+  const [valid] = validate({ message }, { message: isObj });
+  if (!valid) return;
+
+  const { name, payload } = message.data;
+
+  switch (name) {
+    case 'decoded':
+      return processDecodedQR(payload);
+    case 'init':
+      return handleWorkerInit(payload);
+    default:
+      return log('Unknown message type', name, payload);
+  }
+};
+
+const handleWorkerError = err => {
+  return console.error('Worker encountered error', err);
+};
+
+const processDecodedQR = result => {
+  if (result.length > 0) {
+    const text = result[0][2];
+    QRReader.active = false;
+    QRReader.onScan && QRReader.onScan(text);
+  } else {
+    log('Received empty result from worker');
+  }
+  setTimeout(requestNewDecoderTask, 0);
+};
+
+const handleWorkerInit = msg => {
+  return log('Worker sent message that it initialized', msg);
+};
+
+// Start QR-decoder web worker
+function requestNewDecoderTask() {
+  if (!QRReader.active) return;
+  try {
+    QRReader.ctx.drawImage(QRReader.webcam, 0, 0, QRReader.canvas.width, QRReader.canvas.height);
+    const imgData = QRReader.ctx.getImageData(0, 0, QRReader.canvas.width, QRReader.canvas.height);
+
+    if (imgData.data) {
+      log('sending data...');
+      QRReader.decoder.postMessage(imgData);
+    }
+  } catch (e) {
+    // Try-Catch to circumvent Firefox Bug #879717
+    console.error(e);
+    if (e.name == 'NS_ERROR_NOT_AVAILABLE') setTimeout(requestNewDecoderTask, 0);
+  }
 }
 
 export default QRReader;
