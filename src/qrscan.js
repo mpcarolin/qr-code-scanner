@@ -1,5 +1,5 @@
-import Worker from './decoder.worker';
-import { log } from './utils';
+import Worker from './decoder.worker'
+import { log } from './utils'
 
 /**
  * A QR code reader, using a webworker.
@@ -20,21 +20,21 @@ export class QRReader {
    * @param { Object } mediaElement - either a video or image element
    */
   constructor(mediaElement) {
-    this.active = false;
-    this.webcam = mediaElement;
-    this.canvas = null;
-    this.ctx = null;
-    this.decodingWorker = null;
-    this.streaming = false;
-    this.onScanComplete = null;
+    this.active = false
+    this.webcam = mediaElement
+    this.canvas = null
+    this.ctx = null
+    this.decodingWorker = null
+    this.streaming = false
+    this.onScanComplete = null
 
-    this.setPhotoSourceToScan(mediaElement);
+    this.setPhotoSourceToScan(mediaElement)
 
     // set the canvas to match the image dimensions
-    this.setCanvas();
+    this.setCanvas()
 
     // initialize the decoding worker
-    this.decodingWorker = this.createWorker();
+    this.decodingWorker = this.createWorker()
 
     // set the canvas properties at the right time
     if (window.isMediaStreamAPISupported) {
@@ -42,13 +42,13 @@ export class QRReader {
       this.webcam.addEventListener(
         'play',
         event => {
-          !this.streaming && this.setCanvasProperties();
-          this.streaming = true;
+          !this.streaming && this.setCanvasProperties()
+          this.streaming = true
         },
         false
-      );
+      )
     } else {
-      this.setCanvasProperties();
+      this.setCanvasProperties()
     }
   }
 
@@ -58,15 +58,15 @@ export class QRReader {
    * @param { Boolean } scanForSelectedPhotos
    */
   scan(onComplete, scanForSelectedPhotos) {
-    this.active = true;
-    this.setCanvas();
+    this.active = true
+    this.setCanvas()
 
     // set the onScan callback which will be called by the message handler, if it receives data from worker
-    this.onScanComplete = onComplete;
+    this.onScanComplete = onComplete
 
-    setTimeout(() => this.setPhotoSourceToScan(null, scanForSelectedPhotos));
+    setTimeout(() => this.setPhotoSourceToScan(null, scanForSelectedPhotos))
 
-    this.requestNewDecoderTask();
+    this.requestNewDecoderTask()
   }
 
   /**
@@ -75,17 +75,17 @@ export class QRReader {
    * @returns { void }
    */
   terminate() {
-    log('Terminating worker');
-    this.decodingWorker && this.decodingWorker.terminate();
-    this.decodingWorker = null;
+    log('Terminating worker')
+    this.decodingWorker && this.decodingWorker.terminate()
+    this.decodingWorker = null
   }
 
   /**
    * Set the dimensions of canvas to match the window
    */
   setCanvasProperties() {
-    this.canvas.width = window.innerWidth;
-    this.canvas.height = window.innerHeight;
+    this.canvas.width = window.innerWidth
+    this.canvas.height = window.innerHeight
   }
 
   /**
@@ -94,21 +94,21 @@ export class QRReader {
    * @returns { Object } the worker
    */
   createWorker() {
-    const worker = new Worker();
-    worker.onerror = e => this.handleWorkerError(e);
-    worker.onmessage = msg => this.handleWorkerMessage(msg);
+    const worker = new Worker()
+    worker.onerror = e => this.handleWorkerError(e)
+    worker.onmessage = msg => this.handleWorkerMessage(msg)
 
-    log('Created worker', worker);
+    log('Created worker', worker)
 
-    return worker;
+    return worker
   }
 
   /**
    * creates the canvas and context
    */
   setCanvas() {
-    this.canvas = document.createElement('canvas');
-    this.ctx = this.canvas.getContext('2d');
+    this.canvas = document.createElement('canvas')
+    this.ctx = this.canvas.getContext('2d')
   }
 
   /**
@@ -117,15 +117,15 @@ export class QRReader {
    */
   validateMessage(msg) {
     if (!msg) {
-      console.error('Found undefined message', msg);
-      return [false];
+      console.error('Found undefined message', msg)
+      return [false]
     }
     if (typeof msg === 'object') {
-      return [true];
+      return [true]
     }
 
-    console.error('Message was not an object as expected', msg);
-    return [false];
+    console.error('Message was not an object as expected', msg)
+    return [false]
   }
 
   /**
@@ -134,18 +134,18 @@ export class QRReader {
    * @param {Object} message.data - the QR result data
    */
   handleWorkerMessage(message) {
-    const [valid] = this.validateMessage(message);
-    if (!valid) return;
+    const [valid] = this.validateMessage(message)
+    if (!valid) return
 
-    const { name, payload } = message.data;
+    const { name, payload } = message.data
 
     switch (name) {
       case 'decoded':
-        return this.processDecodedQR(payload);
+        return this.processDecodedQR(payload)
       case 'init':
-        return this.handleWorkerInit(payload);
+        return this.handleWorkerInit(payload)
       default:
-        return log('Unknown message type', name, payload);
+        return log('Unknown message type', name, payload)
     }
   }
 
@@ -154,7 +154,7 @@ export class QRReader {
    * @param {*} msg
    */
   handleWorkerInit(msg) {
-    return log('Worker sent message that it initialized', msg);
+    return log('Worker sent message that it initialized', msg)
   }
 
   /**
@@ -162,7 +162,7 @@ export class QRReader {
    * @param {*} err
    */
   handleWorkerError(err) {
-    return console.error('Worker encountered error', err);
+    return console.error('Worker encountered error', err)
   }
 
   /**
@@ -171,15 +171,15 @@ export class QRReader {
    */
   processDecodedQR(result) {
     if (result.length > 0) {
-      log('Received result from worker', result);
-      const text = result[0][2];
-      this.active = false;
-      this.onScanComplete && this.onScanComplete(text);
+      log('Received result from worker', result)
+      const text = result[0][2]
+      this.active = false
+      this.onScanComplete && this.onScanComplete(text)
     } else {
-      log('Received empty result from worker');
+      log('Received empty result from worker')
     }
 
-    setTimeout(() => this.requestNewDecoderTask(), 0);
+    setTimeout(() => this.requestNewDecoderTask(), 0)
   }
 
   /**
@@ -187,22 +187,22 @@ export class QRReader {
    * @returns { void }
    */
   requestNewDecoderTask() {
-    if (!this.active) return;
+    if (!this.active) return
 
     try {
       // get the image data by drawing the webcam to the canvas context, then extracting the image data out
-      const { width, height } = this.canvas;
-      this.ctx.drawImage(this.webcam, 0, 0, width, height);
-      const imgData = this.ctx.getImageData(0, 0, width, height);
+      const { width, height } = this.canvas
+      this.ctx.drawImage(this.webcam, 0, 0, width, height)
+      const imgData = this.ctx.getImageData(0, 0, width, height)
 
-      if (!imgData.data) return;
+      if (!imgData.data) return
 
-      log('sending data...');
-      this.decodingWorker.postMessage(imgData);
+      log('sending data...')
+      this.decodingWorker.postMessage(imgData)
     } catch (e) {
-      console.error(e);
+      console.error(e)
       // Try-Catch to circumvent Firefox Bug #879717
-      if (e.name == 'NS_ERROR_NOT_AVAILABLE') setTimeout(() => this.requestNewDecoderTask(), 0);
+      if (e.name == 'NS_ERROR_NOT_AVAILABLE') setTimeout(() => this.requestNewDecoderTask(), 0)
     }
   }
 
@@ -212,17 +212,17 @@ export class QRReader {
    * @param {Boolean} forSelectedPhotos
    */
   setPhotoSourceToScan(mediaElement, forSelectedPhotos) {
-    if (this.webcam) return;
+    if (this.webcam) return
 
-    let webcam;
+    let webcam
 
     if (mediaElement) {
-      webcam = mediaElement;
+      webcam = mediaElement
     } else if (!forSelectedPhotos && window.isMediaStreamAPISupported) {
-      webcam = document.querySelector('video');
+      webcam = document.querySelector('video')
     } else {
-      webcam = document.querySelector('img');
+      webcam = document.querySelector('img')
     }
-    this.webcam = webcam;
+    this.webcam = webcam
   }
 }

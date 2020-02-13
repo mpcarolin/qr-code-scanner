@@ -5,16 +5,7 @@
 	"main": "dist/qr-reader.js",
 	"module": "./index.js",
 	"scripts": {
-		"start": "webpack-dev-server --hot --inline --open --mode=development --host 0.0.0.0 --disable-host-check",
 		"build": "cross-env NODE_ENV=production webpack-cli --mode=production --config webpack.config.js",
-		"precommit": "lint-staged",
-		"pretty": "prettier --write 'app/**/*.js'"
-	},
-	"lint-staged": {
-		"*.{js,css}": [
-			"npm run pretty",
-			"git add"
-		]
 	},
 	"engines": {
 		"node": ">=4.1.1"
