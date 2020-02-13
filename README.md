@@ -12,15 +12,15 @@ import { QRReader } from 'qr-reader'
 const element = document.getElementById('video') // could also be an <img> element. If you're using react, you can use refs for this
 
 // initialize the qr reader and web worker
-QRReader.init(element)
+const reader = new QRReader(element)
 
 // scan the element
-QRReader.scan(result => {
+reader.scan(result => {
   doSomethingWithQRText(result)
 })
 
 // terminate the web worker
-QRReader.terminate()
+reader.terminate()
 ```
 
 ### Contributions
