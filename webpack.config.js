@@ -11,7 +11,6 @@ module.exports = {
     filename: 'qr-reader.js',
     // necessary to provide web workers access to the function
     // postMessage (see https://github.com/webpack/webpack/issues/6642#issuecomment-371087342)
-    // globalObject: '(self || this)'
     globalObject: 'this'
   },
   devServer: {

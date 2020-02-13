@@ -1,5 +1,4 @@
 import Worker from './decoder.worker';
-import { isObj, validate } from 'jsutils';
 
 const SHOULD_LOG = false;
 const log = (...args) => SHOULD_LOG && console.log(...args);
@@ -12,36 +11,23 @@ QRReader.canvas = null;
 QRReader.ctx = null;
 QRReader.decoder = null;
 
-QRReader.setCanvas = () => {
-  QRReader.canvas = document.createElement('canvas');
-  QRReader.ctx = QRReader.canvas.getContext('2d');
-};
-
-function setPhotoSourceToScan(mediaElement, forSelectedPhotos) {
-  if (QRReader.webcam) return;
-  let webcam;
-  if (mediaElement) {
-    webcam = mediaElement;
-  } else if (!forSelectedPhotos && window.isMediaStreamAPISupported) {
-    webcam = document.querySelector('video');
-  } else {
-    webcam = document.querySelector('img');
-  }
-  QRReader.webcam = webcam;
-}
-
 /**
+ * Initializes the web worker and the canvas
  * @param { Object } mediaElement - either a video or image element
  */
 QRReader.init = mediaElement => {
   var streaming = false;
 
-  // Init Webcam + Canvas
+  // stores the media element, or finds it if mediaElement is undefined
   setPhotoSourceToScan(mediaElement);
 
+  // set the canvas to match the image dimensions
   QRReader.setCanvas();
+
+  // initialize the decoding worker
   QRReader.decoder = createWorker();
 
+  // set the canvas properties at the right time
   if (window.isMediaStreamAPISupported) {
     // Resize webcam according to input
     QRReader.webcam.addEventListener(
@@ -57,6 +43,11 @@ QRReader.init = mediaElement => {
   } else {
     setCanvasProperties();
   }
+};
+
+QRReader.setCanvas = () => {
+  QRReader.canvas = document.createElement('canvas');
+  QRReader.ctx = QRReader.canvas.getContext('2d');
 };
 
 /**
@@ -84,6 +75,7 @@ QRReader.scan = function(callback, forSelectedPhotos) {
  * @returns { void }
  */
 QRReader.terminate = () => {
+  log('Terminating worker');
   QRReader.decoder && QRReader.decoder.terminate();
   QRReader.decoder = null;
 };
@@ -98,9 +90,25 @@ const createWorker = () => {
   worker.onerror = handleWorkerError;
   worker.onmessage = handleWorkerMessage;
 
-  console.log('Created worker', worker);
+  log('Created worker', worker);
 
   return worker;
+};
+
+const validateMessage = msg => {
+  if (!msg) {
+    console.error('Found undefined message', msg);
+    return [false];
+  }
+  if (typeof msg === 'object') {
+    return [true];
+  }
+
+  console.error('Message was not an object as expected', msg);
+  return [false];
+
+  // const [valid] = validate({ message }, { message: isObj });
+  // if (!valid) return;
 };
 
 /**
@@ -108,7 +116,7 @@ const createWorker = () => {
  * @param {*} message
  */
 const handleWorkerMessage = message => {
-  const [valid] = validate({ message }, { message: isObj });
+  const [valid] = validateMessage(message);
   if (!valid) return;
 
   const { name, payload } = message.data;
@@ -129,6 +137,7 @@ const handleWorkerError = err => {
 
 const processDecodedQR = result => {
   if (result.length > 0) {
+    log('Received result from worker', result);
     const text = result[0][2];
     QRReader.active = false;
     QRReader.onScan && QRReader.onScan(text);
@@ -158,6 +167,19 @@ function requestNewDecoderTask() {
     console.error(e);
     if (e.name == 'NS_ERROR_NOT_AVAILABLE') setTimeout(requestNewDecoderTask, 0);
   }
+}
+
+function setPhotoSourceToScan(mediaElement, forSelectedPhotos) {
+  if (QRReader.webcam) return;
+  let webcam;
+  if (mediaElement) {
+    webcam = mediaElement;
+  } else if (!forSelectedPhotos && window.isMediaStreamAPISupported) {
+    webcam = document.querySelector('video');
+  } else {
+    webcam = document.querySelector('img');
+  }
+  QRReader.webcam = webcam;
 }
 
 export default QRReader;
