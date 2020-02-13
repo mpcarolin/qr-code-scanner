@@ -6,9 +6,7 @@
 	"module": "./index.js",
 	"scripts": {
 		"start": "webpack-dev-server --hot --inline --open --mode=development --host 0.0.0.0 --disable-host-check",
-		"deploy": "npm run build && bash deploy.sh",
 		"build": "cross-env NODE_ENV=production webpack-cli --mode=production --config webpack.config.js",
-		"stats": "cross-env NODE_ENV=production webpack-cli --mode=production --profile --json > stats.json",
 		"precommit": "lint-staged",
 		"pretty": "prettier --write 'app/**/*.js'"
 	},
@@ -26,16 +24,11 @@
 		"webpack-loader": "^0.0.1",
 		"worker-loader": "^2.0.0"
 	},
-	"peerDependencies": {
-		"jsutils": "git+https://github.com/lancetipton/jsutils.git#v3.2.1"
-	},
 	"devDependencies": {
-		"jsutils": "git+https://github.com/lancetipton/jsutils.git#v3.2.1",
 		"clean-webpack-plugin": "^0.1.19",
 		"copy-webpack-plugin": "^4.5.3",
 		"cross-env": "^5.2.0",
 		"css-loader": "^1.0.0",
-		"danger": "^4.4.8",
 		"extract-text-webpack-plugin": "4.0.0-beta.0",
 		"file-loader": "^2.0.0",
 		"html-webpack-plugin": "^3.2.0",

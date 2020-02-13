@@ -1,56 +1,27 @@
-### <p align="center"><img width="150px" height="150px" src="https://raw.githubusercontent.com/code-kotis/barcode-scanner/master/app/images/touch/android-chrome-192x192.png"></p>
+# QR Reader
+A library for scanning QR codes on the web using a web worker.
 
-# [QR Code Scanner](https://qrcodescan.in) ![Build](https://travis-ci.org/code-kotis/barcode-scanner.svg?branch=master)
+Most of this code is taken directly from [code-kotis/qr-code-scanner](https://github.com/code-kotis/qr-code-scanner)
+I have only made minor modifications to it, mainly to make it more easily consumed as library.
 
-*QRCode Scanner - a simple, fast and useful progressive web application*
+## Usage
 
-### [Live](https://qrcodescan.in)
+```javascript
+import { QRReader } from 'qr-reader'
 
-## Features
+const element = document.getElementById('video') // could also be an <img> element. If you're using react, you can use refs for this
 
-  - App Shell.
+// initialize the qr reader and web worker
+QRReader.init(element)
 
-  - Secure via https using [cloudflare free ssl](https://www.cloudflare.com/ssl/)
+// scan the element
+QRReader.scan(result => {
+  doSomethingWithQRText(result)
+})
 
-  - Works offline.
-
-  - Fully Responsive.
-
-  - Add to home screen, Splash screen.
-
-  - Supported Browser - Google Chrome, Firefox, Opera **(Both Desktop & Mobile)**, Microsoft Edge (**(Insider Preview build)**) and now supports iOS as well.
-
-## Installation
-
-1. Clone this repo
-
-  ```bash
-  git clone https://github.com/code-kotis/barcode-scanner
-  ```
-
-2. Installation
-
-  ```bash
-  npm install
-  ```
-
-3. Run
-
-  ```bash
-  npm run start
-  ```
-
-4. Build
-
-  ```bash
-  npm run build
-  ```
-
-5. Deploy
-
-  ```bash
-  npm run deploy
-  ```
+// terminate the web worker
+QRReader.terminate()
+```
 
 ### Contributions
 
