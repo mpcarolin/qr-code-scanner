@@ -1,8 +1,8 @@
 # QR Reader
 A library for scanning QR codes on the web using a web worker.
 
-Most of this code is taken directly from [code-kotis/qr-code-scanner](https://github.com/code-kotis/qr-code-scanner)
-I have only made minor modifications to it, mainly to make it more easily consumed as library.
+Most of this code is taken directly from [code-kotis/qr-code-scanner](https://github.com/code-kotis/qr-code-scanner).
+I have only made minor modifications to it, mainly to make it more easily consumed as a library.
 
 ## Usage
 
